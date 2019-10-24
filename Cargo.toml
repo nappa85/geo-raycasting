@@ -3,6 +3,13 @@ name = "geo-raycasting"
 version = "0.1.0"
 authors = ["Marco Napetti <marco.napetti@gmail.com>"]
 edition = "2018"
+description = "Ray Casting algorithm for the geo crate"
+license = "Apache-2.0/MIT"
+repository = "https://github.com/nappa85/geo-raycasting"
+readme = "README.md"
+documentation = "https://docs.rs/geo-raycasting/"
+keywords = ["geo", "polygon", "raycasting"]
+categories = ["algorithms"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

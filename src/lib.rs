@@ -1,15 +1,21 @@
+// Copyright 2019 Marco Napetti
+//
+// Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
+// http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
+// http://opensource.org/licenses/MIT>, at your option. This file may not be
+// copied, modified, or distributed except according to those terms.
 #![deny(warnings)]
 #![deny(missing_docs)]
 
 //! # geo-raycasting
 //!
-//! Ray Casting algorithm for geo crate
+//! Ray Casting algorithm for the geo crate
 
-use geo_types::{Point, Line, LineString, Polygon, CoordinateType};
+use geo_types::{Coordinate, CoordinateType, Line, LineString, Point, Polygon};
 
 use num_traits::float::Float;
 
-fn pt_in_polygon<T: CoordinateType + Float>(pt: &Point<T>, poly: &LineString<T>) -> bool {
+fn pt_in_polygon<T: CoordinateType + Float>(pt: &Coordinate<T>, poly: &LineString<T>) -> bool {
     let count = poly.lines()
         .filter(|line| ray_intersect_seg(pt, line))
         .count();
@@ -17,8 +23,8 @@ fn pt_in_polygon<T: CoordinateType + Float>(pt: &Point<T>, poly: &LineString<T>)
     count % 2 == 1
 }
 
-fn ray_intersect_seg<T: CoordinateType + Float>(p: &Point<T>, line: &Line<T>) -> bool {
-    let mut pt = p.clone();
+fn ray_intersect_seg<T: CoordinateType + Float>(p: &Coordinate<T>, line: &Line<T>) -> bool {
+    let (pt_x, mut pt_y) = p.x_y();
     let (a, b) = if line.start.y > line.end.y {
         (&line.end, &line.start)
     }
@@ -26,13 +32,13 @@ fn ray_intersect_seg<T: CoordinateType + Float>(p: &Point<T>, line: &Line<T>) ->
         (&line.start, &line.end)
     };
 
-    if pt.y() == a.y || pt.y() == b.y {
-        pt.set_y(pt.y() + T::min_positive_value());
+    if pt_y == a.y || pt_y == b.y {
+        pt_y = pt_y + T::min_positive_value();
     }
  
-    if (pt.y() > b.y || pt.y() < a.y) || pt.x() > a.x.max(b.x) {
+    if (pt_y > b.y || pt_y < a.y) || pt_x > a.x.max(b.x) {
         false
-    } else if pt.x() < a.x.min(b.x) {
+    } else if pt_x < a.x.min(b.x) {
         true
     } else {
         let m_red = if (a.x - b.x).abs() > T::min_positive_value() {
@@ -40,8 +46,8 @@ fn ray_intersect_seg<T: CoordinateType + Float>(p: &Point<T>, line: &Line<T>) ->
         } else {
             T::max_value()
         };
-        let m_blue = if (a.x - pt.x()).abs() > T::max_value() {
-            (pt.y() - a.y) / (pt.x() - a.x)
+        let m_blue = if (a.x - pt_x).abs() > T::max_value() {
+            (pt_y - a.y) / (pt_x - a.x)
         } else {
             T::max_value()
         };
@@ -49,18 +55,34 @@ fn ray_intersect_seg<T: CoordinateType + Float>(p: &Point<T>, line: &Line<T>) ->
     }
 }
 
-pub trait RayCasting<T: CoordinateType + Float> {
-    fn within(&self, pt: &Point<T>) -> bool;
+/// Trait implementing Ray Casting algorith
+pub trait RayCasting<T: CoordinateType + Float, P: Into<Coordinate<T>>> {
+    /// Checks if a point is within a polygonal area
+    fn within(&self, pt: &P) -> bool;
 }
 
-impl<T: CoordinateType + Float> RayCasting<T> for LineString<T> {
+impl<T: CoordinateType + Float> RayCasting<T, Point<T>> for LineString<T> {
     fn within(&self, pt: &Point<T>) -> bool {
-        pt_in_polygon(pt, self)
+        pt_in_polygon(&pt.x_y().into(), self)
     }
 }
 
-impl<T: CoordinateType + Float> RayCasting<T> for Polygon<T> {
+impl<T: CoordinateType + Float> RayCasting<T, Coordinate<T>> for LineString<T> {
+    fn within(&self, pt: &Coordinate<T>) -> bool {
+        pt_in_polygon(&pt, self)
+    }
+}
+
+impl<T: CoordinateType + Float> RayCasting<T, Point<T>> for Polygon<T> {
     fn within(&self, pt: &Point<T>) -> bool {
+        let coord = pt.x_y().into();
+        pt_in_polygon(&coord, self.exterior()) &&
+            !self.interiors().iter().any(|line| !pt_in_polygon(&coord, line))
+    }
+}
+
+impl<T: CoordinateType + Float> RayCasting<T, Coordinate<T>> for Polygon<T> {
+    fn within(&self, pt: &Coordinate<T>) -> bool {
         pt_in_polygon(pt, self.exterior()) &&
             !self.interiors().iter().any(|line| !pt_in_polygon(pt, line))
     }

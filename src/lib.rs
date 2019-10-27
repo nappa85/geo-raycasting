@@ -15,7 +15,7 @@ use geo_types::{Coordinate, CoordinateType, Line, LineString, Point, Polygon};
 
 use num_traits::float::Float;
 
-fn pt_in_polygon<T: CoordinateType + Float + std::fmt::Debug>(pt: &Coordinate<T>, poly: &LineString<T>) -> bool {
+fn pt_in_polygon<T: CoordinateType + Float>(pt: &Coordinate<T>, poly: &LineString<T>) -> bool {
     let count = poly.lines()
         .filter(|line| ray_intersect_seg(pt, line))
         .count();
@@ -23,7 +23,7 @@ fn pt_in_polygon<T: CoordinateType + Float + std::fmt::Debug>(pt: &Coordinate<T>
     count % 2 == 1
 }
 
-fn ray_intersect_seg<T: CoordinateType + Float + std::fmt::Debug>(p: &Coordinate<T>, line: &Line<T>) -> bool {
+fn ray_intersect_seg<T: CoordinateType + Float>(p: &Coordinate<T>, line: &Line<T>) -> bool {
     let (pt_x, mut pt_y) = p.x_y();
     let (a, b) = if line.start.y > line.end.y {
         (&line.end, &line.start)
@@ -56,24 +56,24 @@ fn ray_intersect_seg<T: CoordinateType + Float + std::fmt::Debug>(p: &Coordinate
 }
 
 /// Trait implementing Ray Casting algorith
-pub trait RayCasting<T: CoordinateType + Float + std::fmt::Debug, P: Into<Coordinate<T>>> {
+pub trait RayCasting<T: CoordinateType + Float, P: Into<Coordinate<T>>> {
     /// Checks if a point is within a polygonal area
     fn within(&self, pt: &P) -> bool;
 }
 
-impl<T: CoordinateType + Float + std::fmt::Debug> RayCasting<T, Point<T>> for LineString<T> {
+impl<T: CoordinateType + Float> RayCasting<T, Point<T>> for LineString<T> {
     fn within(&self, pt: &Point<T>) -> bool {
         pt_in_polygon(&pt.x_y().into(), self)
     }
 }
 
-impl<T: CoordinateType + Float + std::fmt::Debug> RayCasting<T, Coordinate<T>> for LineString<T> {
+impl<T: CoordinateType + Float> RayCasting<T, Coordinate<T>> for LineString<T> {
     fn within(&self, pt: &Coordinate<T>) -> bool {
         pt_in_polygon(&pt, self)
     }
 }
 
-impl<T: CoordinateType + Float + std::fmt::Debug> RayCasting<T, Point<T>> for Polygon<T> {
+impl<T: CoordinateType + Float> RayCasting<T, Point<T>> for Polygon<T> {
     fn within(&self, pt: &Point<T>) -> bool {
         let coord = pt.x_y().into();
         pt_in_polygon(&coord, self.exterior()) &&
@@ -81,7 +81,7 @@ impl<T: CoordinateType + Float + std::fmt::Debug> RayCasting<T, Point<T>> for Po
     }
 }
 
-impl<T: CoordinateType + Float + std::fmt::Debug> RayCasting<T, Coordinate<T>> for Polygon<T> {
+impl<T: CoordinateType + Float> RayCasting<T, Coordinate<T>> for Polygon<T> {
     fn within(&self, pt: &Coordinate<T>) -> bool {
         pt_in_polygon(pt, self.exterior()) &&
             !self.interiors().iter().any(|line| pt_in_polygon(pt, line))

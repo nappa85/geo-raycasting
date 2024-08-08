@@ -1,6 +1,6 @@
 [package]
 name = "geo-raycasting"
-version = "0.3.0"
+version = "0.7.0"
 authors = ["Marco Napetti <marco.napetti@gmail.com>"]
 edition = "2018"
 description = "Ray Casting algorithm for the geo crate"
